@@ -116,6 +116,8 @@ button:focus-visible{outline:3px solid var(--mint);outline-offset:2px}
 .pad #bF{background:var(--red);font-size:12px}
 .pad #bS{background:#6b2fb0;font-size:10px}
 .pad button.on{background:var(--bulb);color:var(--night)}
+.keys a.secret{color:var(--red);text-decoration:none;font-weight:700}
+.keys a.secret:hover,.keys a.secret:focus-visible{color:var(--bulb)}
 .keys{margin:0;color:var(--dim);font-size:13px;text-align:center;text-wrap:balance}
 @media (pointer:coarse){.pad{display:grid}.keys{display:none}
   .wrap.vertical{--gw:min(100%, max(240px, min(440px, calc((100vh - 420px) * .75))))}}
@@ -204,7 +206,7 @@ body{-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-t
     <button id="bS" type="button">SUPER</button>
     <button id="bF" type="button">PIE!</button>
   </div>
-  <p class="keys">&larr; &rarr; or A D to move &middot; Space or click to throw &middot; X for a super pie &middot; P to pause &middot; M for music</p>
+  <p class="keys">&larr; &rarr; or A D to move &middot; Space or click to throw &middot; X for a super pie &middot; P to pause &middot; M for music<a href="clown-invaders.html" class="secret" aria-label="Play Clown Invaders">.</a></p>
 </div>
 
 <script>
