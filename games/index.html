@@ -1,12 +1,6 @@
 <!doctype html>
 <html lang="en">
 <head>
-<script async src="https://www.googletagmanager.com/gtm.js?id=GTM-NWBX4KWL"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-</script>
 <!--
 	___           ________________  _      ______ ______ _   _ 
   / ____|   /\    |___  /___  / __ \| |    |  ____|  ____| \ | |
@@ -122,6 +116,9 @@ button:focus-visible{outline:3px solid var(--mint);outline-offset:2px}
 .pad #bF{background:var(--red);font-size:12px}
 .pad #bS{background:#6b2fb0;font-size:10px}
 .pad button.on{background:var(--bulb);color:var(--night)}
+.missbox{display:inline-flex;align-items:baseline;white-space:nowrap}
+.stock a.secret{color:var(--red);text-decoration:none;font-weight:700;font-size:16px;line-height:1}
+.stock a.secret:hover,.stock a.secret:focus-visible{color:var(--bulb)}
 .keys a.secret{color:var(--red);text-decoration:none;font-weight:700}
 .keys a.secret:hover,.keys a.secret:focus-visible{color:var(--bulb)}
 .keys{margin:0;color:var(--dim);font-size:13px;text-align:center;text-wrap:balance}
@@ -179,6 +176,12 @@ body{-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-t
 .marquee.flash h1{animation:titleflash 1.6s steps(1,end)}
 .marquee.flash{animation:bulbflash .4s ease-in-out 4}
 @media (prefers-reduced-motion:reduce){.marquee.flash h1{animation:titleflash 1.6s steps(1,end) 1}.marquee.flash{animation:none}}
+.lbmsg{color:var(--bulb)}
+#pcountry{font-family:var(--body);font-size:13px;width:min(240px,100%);padding:8px 6px;background:#000;color:var(--cream);border:2px solid var(--dim)}
+#pcountry:focus{outline:3px solid var(--bulb);outline-offset:2px}
+.flag{font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;font-style:normal}
+.ghost.pz{font-family:var(--display);font-size:12px;min-width:36px;padding-inline:8px}
+.ghost.pz[aria-pressed="true"]{background:var(--bulb);color:var(--night);border-color:var(--bulb)}
 </style>
 </head>
 <body>
@@ -201,9 +204,9 @@ body{-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-t
       <div class="stock">
         <div class="icons" id="lives" aria-label="Lives"></div>
         <div class="icons pies" id="supers" aria-label="Super pies"></div>
-        <span class="miss" id="miss">Misses 0/2</span>
+        <span class="missbox"><span class="miss" id="miss">Misses 0/2</span><a href="clown-invaders.html" class="secret" aria-label="Play Clown Invaders">.</a></span>
       </div>
-      <div class="toggles"><button class="ghost" id="music" type="button" aria-pressed="true">Music: on</button><button class="ghost" id="mute" type="button" aria-pressed="true">Sound FX: on</button></div>
+      <div class="toggles"><button class="ghost pz" id="pause" type="button" aria-label="Pause" aria-pressed="false">P</button><button class="ghost" id="music" type="button" aria-pressed="true">Music: on</button><button class="ghost" id="mute" type="button" aria-pressed="true">Sound FX: on</button></div>
     </div>
   </div>
   <div class="pad">
@@ -376,7 +379,7 @@ const menFor=L=>4+L;
 const speedFor=L=>1;
 
 /* ---------- state ---------- */
-let state='title',prev='play',name=book.name||'',elapsed=0,penalty=0,lives=3,supers=2,invul=0,shake=0,fired=0,hits=0;
+let state='title',prev='play',name=(book.name||'').slice(0,8),elapsed=0,penalty=0,lives=3,supers=2,invul=0,shake=0,fired=0,hits=0;
 let level=1,score=0,lvFired=0,lvHits=0,luT=0,luStep=0,cleared=[];
 let bear=null,bearT=5,power=0,shownPow='',misses=0,bolts=[],ebolts=[],band=[],warnBeams=[],shots=[],scen=[],parts=[],pops=[],splats=[],scroll=0,cu=ACROSS/2,cool=0,countT=0,lastCount='',lastRun=null;
 const keys={a:false,b:false,f:false};
@@ -390,7 +393,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 function roster(){$('roster').innerHTML=BAND.map(t=>{const all=band.filter(m=>m.t===t),left=all.filter(m=>m.alive).length;
   return `<div class="chip${all.length&&!left?' down':''}"><img src="${t.img}" alt=""><span>${esc(t.name)}${all.length>1?' &times;'+left:''}</span></div>`;}).join('');}
 function hud(){
-  $('who').textContent=name||'---';
+  $('who').textContent=(flag(pcountry)?flag(pcountry)+' ':'')+(name||'---');
   $('lvl').textContent='Level '+level;
   $('score').textContent=String(score).padStart(5,'0');
   $('lives').innerHTML=Array.from({length:lives},()=>`<img src="${HEART}" alt="">`).join('');
@@ -405,9 +408,34 @@ function clock(){const s=fmt(elapsed+penalty);if(s!==shownTime){shownTime=s;$('t
 
 function playsHTML(highlight){
   if(!book.recent.length)return '';
-  const rows=book.recent.slice().reverse().map((p,i)=>`<li class="${p===highlight?'me':''}"><span>${i+1}.</span><span>${esc(p.name)}</span><span class="d">${p.level!=null?'L'+p.level:fmt(p.time||0)+'s'}</span><span class="d">${p.aim!=null?p.aim+'%':''}</span><b>${p.score!=null?p.score:''}</b></li>`).join('');
-  return `<ul class="plays"><span class="h">Last 5 plays</span><li class="hd"><span></span><span>Name</span><span>Level</span><span>Aim</span><span>Score</span></li>${rows}</ul>`;
+  const rows=book.recent.slice().reverse().sort((a,b)=>(b.score||0)-(a.score||0)).map((p,i)=>`<li class="${p===highlight?'me':''}"><span>${i+1}.</span><span>${nameTag(p.name,p.country)}</span><span class="d">${p.level!=null?'L'+p.level:fmt(p.time||0)+'s'}</span><span class="d">${p.aim!=null?p.aim+'%':''}</span><b>${p.score!=null?p.score:''}</b></li>`).join('');
+  return `<ul class="plays"><span class="h">Last 5 plays &middot; best first</span><li class="hd"><span></span><span>Name</span><span>Level</span><span>Aim</span><span>Score</span></li>${rows}</ul>`;
 }
+/* ---------- shared top 10 (scores.php next to this file) ---------- */
+const LB={url:'scores.php',game:'beat',col:'Level',top:null};
+function lbGet(){return fetch(LB.url+'?game='+LB.game,{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.ok){LB.top=j.top;return j;}return null;}).catch(()=>null);}
+function lbSave(d){return fetch(LB.url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({game:LB.game},d))})
+  .then(r=>r.json()).then(j=>{if(j&&j.top)LB.top=j.top;return j;}).catch(()=>null);}
+/* ---------- player country flag ---------- */
+const CC='AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GT GU GW GY HK HN HR HT HU ID IE IL IM IN IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG US UY UZ VA VC VE VG VI VN VU WF WS XK YE YT ZA ZM ZW'.split(' ');
+const flag=c=>c&&/^[A-Z]{2}$/.test(c)?String.fromCodePoint(...[...c].map(ch=>0x1F1E6+ch.charCodeAt(0)-65)):'';
+let ccName=c=>c;try{const dn=new Intl.DisplayNames([navigator.language||'en','en'],{type:'region'});ccName=c=>{try{return dn.of(c)||c}catch(e){return c}};}catch(e){}
+function countryOptions(sel){const top=['BE','NL','DE','FR','GB','LU','US'];
+  const rest=CC.filter(c=>!top.includes(c)).sort((a,b)=>ccName(a).localeCompare(ccName(b)));
+  const o=c=>`<option value="${c}"${c===sel?' selected':''}>${flag(c)} ${esc(ccName(c))}</option>`;
+  return `<option value=""${sel?'':' selected'}>No flag</option>${top.map(o).join('')}<option disabled>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;</option>${rest.map(o).join('')}`;}
+const nameTag=(n,c)=>(flag(c)?`<span class="flag">${flag(c)}</span> `:'')+esc(n);
+let pcountry=(book.country&&/^[A-Z]{2}$/.test(book.country))?book.country:'';
+function lbHTML(me,myScore,res){
+  if(!LB.top)return '';
+  let msg='';
+  if(res&&res.ok&&res.rank)msg=res.rank<=10?`You're #${res.rank} on the leaderboard!`:`You're #${res.rank} overall.`;
+  else if(res&&res.error)msg='Score not saved: '+esc(res.error);
+  const rows=LB.top.map((p,i)=>`<li class="${p.name===me&&p.score===myScore?'me':''}"><span>${i+1}.</span><span>${nameTag(p.name,p.country)}</span><span class="d">${LB.col} ${p.level}</span><b>${p.score}</b></li>`).join('');
+  return `<ul class="plays"><span class="h">Top 10 &middot; everyone</span>${rows||'<li><span></span><span>No scores yet. Be the first!</span></li>'}</ul>${msg?`<p class="small lbmsg">${msg}</p>`:''}`;
+}
+function lbShow(html){const el=document.getElementById('lb');if(el&&html)el.innerHTML=html;}
+let runStart=0,saving=null;
 const hiLine=()=>book.best?`<p class="small">Hi-score: ${book.best.score} &middot; ${esc(book.best.name)}</p>`:'';
 
 function setupLevel(){
@@ -427,18 +455,20 @@ function titleScreen(){
   show(`<h2>Time attack</h2>
   <p>Pie the whole band as fast as you can. Clear them all and the next level brings one more band member. They fire back: a flashing red line shows where. Miss twice and someone you pied comes back. Shoot or catch the bear balloon as it floats down for 6 seconds of triple pies.</p>
   <p class="small">Each cleared level scores (100 points per second under 60 + 40 points per aim %) &times; the level number.</p>
-  <div class="namebox"><label for="pname">Player name</label><input id="pname" maxlength="12" autocomplete="off" spellcheck="false" value="${esc(name)}"></div>
+  <div class="namebox"><label for="pname">Player name</label><input id="pname" maxlength="8" autocomplete="off" spellcheck="false" value="${esc(name)}"></div>
+  <div class="namebox"><label for="pcountry">Country</label><select id="pcountry">${countryOptions(pcountry)}</select></div>
   <div class="hint" id="hint"></div>
   <div class="btns"><button class="btn" id="go" type="button">Start run</button></div>
-  ${hiLine()}${playsHTML()}`,'full');
+  <div id="lb">${hiLine()}${playsHTML()}</div>`,'full');
+  lbGet().then(j=>{if(j&&state==='title')lbShow(lbHTML(name,-1));});
   const inp=$('pname');inp.addEventListener('input',()=>{inp.value=inp.value.toUpperCase();inp.classList.remove('err');$('hint').textContent='';});
   $('go').onclick=tryStart;
   try{inp.focus({preventScroll:true});}catch(e){}
 }
-function tryStart(){const inp=$('pname');const v=(inp?inp.value:name).trim().toUpperCase();
+function tryStart(){const inp=$('pname');const v=(inp?inp.value:name).trim().toUpperCase().slice(0,8);
   if(!v){if(inp){inp.classList.remove('err');void inp.offsetWidth;inp.classList.add('err');$('hint').textContent='Type a name first';inp.focus();}return;}
-  name=v;book.name=v;saveBook();begin();}
-function begin(){ac();startMusic();resetRun();roster();hud();clock();state='count';countT=2.8;lastCount='';
+  name=v;book.name=v;{const cs=$('pcountry');if(cs){pcountry=cs.value;book.country=pcountry;}}saveBook();begin();}
+function begin(){ac();startMusic();runStart=performance.now();resetRun();roster();hud();clock();state='count';countT=2.8;lastCount='';
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();}
 
 function hurt(why){
@@ -459,17 +489,19 @@ function levelClear(){
 function nextLevel(){level++;supers=Math.min(3,supers+1);setupLevel();roster();hud();clock();state='count';countT=2.8;lastCount='';}
 function lose(why){state='lost';musicLevel(0);jingle([[400,.12],[300,.12],[200,.12],[100,.35]],-20);
   const aim=fired?Math.min(100,Math.round(hits/fired*100)):100;
-  const run={name,level,aim,score};lastRun=run;book.recent.push(run);if(book.recent.length>5)book.recent.shift();
+  const run={name,country:pcountry,level,aim,score};lastRun=run;book.recent.push(run);if(book.recent.length>5)book.recent.shift();
   const isBest=score>0&&(!book.best||score>book.best.score);if(isBest)book.best={name,score};saveBook();hud();
+  saving=score>0?lbSave({name,country:pcountry,score,level,duration:(performance.now()-runStart)/1000}):lbGet();
   const rows=cleared.map(c=>`<span>Level ${c.level}</span><span>${fmt(c.time)}s &middot; ${c.aim}%</span><span>${c.pts}</span>`).join('');
   setTimeout(()=>{if(state!=='lost')return;musicLevel(musicOn?MVOL:0);
     show(`<h2>Game over</h2><p>${why}</p><div class="bigtime num">${score}</div>
-    ${isBest?'<p><b style="color:var(--mint);font-weight:400">New hi-score!</b></p>':''}
+    ${isBest?'<p><b style="color:var(--mint);font-weight:400">New personal best!</b></p>':''}
     ${cleared.length?`<div class="score">${rows}<span class="tot">Total</span><span class="tot">${esc(name)} &middot; aim ${aim}%</span><span class="tot">${score}</span></div>`:`<p>No level cleared. You reached level ${level}.</p>`}
-    ${playsHTML(run)}
+    <div id="lb">${playsHTML(run)}</div>
     <div class="btns"><button class="btn" id="again" type="button">Run again</button><button class="btn alt" id="rename" type="button">Change name</button></div>
-    <span class="small">or press Enter</span>`,'full');$('again').onclick=begin;$('rename').onclick=titleScreen;},900);}
-function togglePause(){if(state==='play'){prev=state;state='paused';musicLevel(0);show('<div class="tag">Paused &middot; P to resume</div>','banner');}
+    <span class="small">or press Enter</span>`,'full');$('again').onclick=begin;$('rename').onclick=titleScreen;
+    const sc=score,nm=name;saving.then(res=>{if(state==='lost')lbShow(lbHTML(nm,sc,res&&(res.top||res.error)?res:null));});},900);}
+function togglePause(){setTimeout(syncPause,0);if(state==='play'){prev=state;state='paused';musicLevel(0);show('<div class="tag">Paused &middot; P to resume</div>','banner');}
   else if(state==='paused'){state=prev;hide();musicLevel(musicOn?MVOL:0);}}
 
 /* ---------- effects ---------- */
@@ -619,7 +651,7 @@ function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;update(dt);render()
 const MOVE=VERT?{ArrowLeft:'a',KeyA:'a',ArrowRight:'b',KeyD:'b'}:{ArrowUp:'a',KeyW:'a',ArrowDown:'b',KeyS:'b'};
 const overlayOpen=()=>!ov.hidden&&ov.classList.contains('full');
 addEventListener('keydown',e=>{
-  if(e.target.tagName==='INPUT'){if(e.key==='Enter'){e.preventDefault();tryStart();}return;}
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'){if(e.key==='Enter'){e.preventDefault();tryStart();}return;}
   if(e.target.tagName==='BUTTON'&&(e.code==='Space'||e.code==='Enter')&&overlayOpen())return;
   if(MOVE[e.code]||e.code==='Space'){e.preventDefault();}
   if((e.code==='Enter'||e.code==='Space')&&(state==='won'||state==='lost')&&overlayOpen()){begin();return;}
@@ -641,6 +673,8 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='p
   b.addEventListener('contextmenu',e=>e.preventDefault());});
 $('bS').addEventListener('pointerdown',e=>{e.preventDefault();superFire();});
 $('mute').onclick=e=>{muted=!muted;const b=e.currentTarget;b.textContent='Sound FX: '+(muted?'off':'on');b.setAttribute('aria-pressed',String(!muted));b.blur();};
+function syncPause(){const b=document.getElementById('pause');if(b)b.setAttribute('aria-pressed',String(state==='paused'));}
+$('pause').onclick=e=>{togglePause();e.currentTarget.blur();};
 $('music').onclick=e=>{musicOn=!musicOn;const b=e.currentTarget;b.textContent='Music: '+(musicOn?'on':'off');b.setAttribute('aria-pressed',String(musicOn));b.blur();
   if(musicOn)startMusic();if(state!=='paused')musicLevel(musicOn?MVOL:0);};
 
@@ -655,6 +689,6 @@ seedScenery();titleScreen();requestAnimationFrame(loop);
   if(window.ResizeObserver)new ResizeObserver(fit).observe(st);})();
 })();
 </script>
-
+<script src="/files/tracker/site.js" defer></script>
 </body>
 </html>

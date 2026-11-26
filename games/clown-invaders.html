@@ -1,12 +1,6 @@
 <!doctype html>
 <html lang="en">
 <head>
-<script async src="https://www.googletagmanager.com/gtm.js?id=GTM-NWBX4KWL"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-</script>
 <!--
 	___           ________________  _      ______ ______ _   _ 
   / ____|   /\    |___  /___  / __ \| |    |  ____|  ____| \ | |
@@ -162,6 +156,12 @@ body{-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-t
 .marquee.flash h1{animation:titleflash 1.6s steps(1,end)}
 .marquee.flash{animation:bulbflash .4s ease-in-out 4}
 @media (prefers-reduced-motion:reduce){.marquee.flash h1{animation:titleflash 1.6s steps(1,end) 1}.marquee.flash{animation:none}}
+.lbmsg{color:var(--bulb)}
+#pcountry{font-family:var(--body);font-size:13px;width:min(240px,100%);padding:8px 6px;background:#000;color:var(--cream);border:2px solid var(--dim)}
+#pcountry:focus{outline:3px solid var(--bulb);outline-offset:2px}
+.flag{font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;font-style:normal}
+.ghost.pz{font-family:var(--display);font-size:12px;min-width:36px;padding-inline:8px}
+.ghost.pz[aria-pressed="true"]{background:var(--bulb);color:var(--night);border-color:var(--bulb)}
 </style>
 </head>
 <body>
@@ -181,7 +181,7 @@ body{-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-t
     </div></div>
     <div class="bar">
       <div class="stock"><div class="lives" id="lives" aria-label="Lives"></div></div>
-      <div class="toggles"><button class="ghost" id="music" type="button" aria-pressed="true">Music: on</button><button class="ghost" id="mute" type="button" aria-pressed="true">Sound FX: on</button></div>
+      <div class="toggles"><button class="ghost pz" id="pause" type="button" aria-label="Pause" aria-pressed="false">P</button><button class="ghost" id="music" type="button" aria-pressed="true">Music: on</button><button class="ghost" id="mute" type="button" aria-pressed="true">Sound FX: on</button></div>
     </div>
   </div>
   <div class="pad">
@@ -325,17 +325,42 @@ try{hi=+localStorage.getItem('fairground-invaders-hi')||0}catch(e){}
 let book={recent:[],name:'',hiName:''};
 try{const j=JSON.parse(localStorage.getItem('gazzoleen-plays')||'null');if(j)book=Object.assign(book,j);}catch(e){}
 function saveBook(){try{localStorage.setItem('gazzoleen-plays',JSON.stringify(book))}catch(e){}}
-let pname=book.name||'',lastPlay=null;
+let pname=(book.name||'').slice(0,8),lastPlay=null;
 const esc=v=>String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function playsHTML(hl){if(!book.recent.length)return '';
-  const rows=book.recent.slice().reverse().map((p,i)=>`<li class="${p===hl?'me':''}"><span>${i+1}.</span><span>${esc(p.name)}</span><span class="d">Speed ${p.speed}</span><b>${String(p.score).padStart(5,'0')}</b></li>`).join('');
-  return `<ul class="plays"><span class="h">Last 5 plays</span>${rows}</ul>`;}
+  const rows=book.recent.slice().reverse().sort((a,b)=>(b.score||0)-(a.score||0)).map((p,i)=>`<li class="${p===hl?'me':''}"><span>${i+1}.</span><span>${nameTag(p.name,p.country)}</span><span class="d">Speed ${p.speed}</span><b>${String(p.score).padStart(5,'0')}</b></li>`).join('');
+  return `<ul class="plays"><span class="h">Last 5 plays &middot; best first</span>${rows}</ul>`;}
 const hiLine=()=>hi>0?`<p class="small">Hi-score ${String(hi).padStart(5,'0')}${book.hiName?' &middot; '+esc(book.hiName):''}</p>`:'';
 
+/* ---------- shared top 10 (scores.php next to this file) ---------- */
+const LB={url:'scores.php',game:'invaders',col:'Speed',top:null};
+function lbGet(){return fetch(LB.url+'?game='+LB.game,{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.ok){LB.top=j.top;return j;}return null;}).catch(()=>null);}
+function lbSave(d){return fetch(LB.url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({game:LB.game},d))})
+  .then(r=>r.json()).then(j=>{if(j&&j.top)LB.top=j.top;return j;}).catch(()=>null);}
+/* ---------- player country flag ---------- */
+const CC='AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GT GU GW GY HK HN HR HT HU ID IE IL IM IN IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG US UY UZ VA VC VE VG VI VN VU WF WS XK YE YT ZA ZM ZW'.split(' ');
+const flag=c=>c&&/^[A-Z]{2}$/.test(c)?String.fromCodePoint(...[...c].map(ch=>0x1F1E6+ch.charCodeAt(0)-65)):'';
+let ccName=c=>c;try{const dn=new Intl.DisplayNames([navigator.language||'en','en'],{type:'region'});ccName=c=>{try{return dn.of(c)||c}catch(e){return c}};}catch(e){}
+function countryOptions(sel){const top=['BE','NL','DE','FR','GB','LU','US'];
+  const rest=CC.filter(c=>!top.includes(c)).sort((a,b)=>ccName(a).localeCompare(ccName(b)));
+  const o=c=>`<option value="${c}"${c===sel?' selected':''}>${flag(c)} ${esc(ccName(c))}</option>`;
+  return `<option value=""${sel?'':' selected'}>No flag</option>${top.map(o).join('')}<option disabled>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;</option>${rest.map(o).join('')}`;}
+const nameTag=(n,c)=>(flag(c)?`<span class="flag">${flag(c)}</span> `:'')+esc(n);
+let pcountry=(book.country&&/^[A-Z]{2}$/.test(book.country))?book.country:'';
+function lbHTML(me,myScore,res){
+  if(!LB.top)return '';
+  let msg='';
+  if(res&&res.ok&&res.rank)msg=res.rank<=10?`You're #${res.rank} on the leaderboard!`:`You're #${res.rank} overall.`;
+  else if(res&&res.error)msg='Score not saved: '+esc(res.error);
+  const rows=LB.top.map((p,i)=>`<li class="${p.name===me&&p.score===myScore?'me':''}"><span>${i+1}.</span><span>${nameTag(p.name,p.country)}</span><span class="d">${LB.col} ${p.level}</span><b>${p.score}</b></li>`).join('');
+  return `<ul class="plays"><span class="h">Top 10 &middot; everyone</span>${rows||'<li><span></span><span>No scores yet. Be the first!</span></li>'}</ul>${msg?`<p class="small lbmsg">${msg}</p>`:''}`;
+}
+function lbShow(html){const el=document.getElementById('lb');if(el&&html)el.innerHTML=html;}
+let runStart=0,saving=null;
 const $=id=>document.getElementById(id);
 const ov=$('ov');
 const pad=(n)=>String(n).padStart(5,'0');
-function hud(){$('score').textContent=pad(score);$('hi').textContent=pad(hi);$('speed').textContent='Score \u00b7 Speed '+(tier+1);$('who').textContent=pname||'---';
+function hud(){$('score').textContent=pad(score);$('hi').textContent=pad(hi);$('speed').textContent='Score \u00b7 Speed '+(tier+1);$('who').textContent=(flag(pcountry)?flag(pcountry)+' ':'')+(pname||'---');
   const L=$('lives');L.innerHTML='';const src=CLOWN.toDataURL();for(let i=0;i<lives;i++){const im=new Image();im.src=src;im.alt='';L.appendChild(im);}
   L.setAttribute('aria-label',lives+' lives left');}
 function show(html,mode){ov.innerHTML=html;ov.className='overlay '+mode;ov.hidden=false;}
@@ -369,31 +394,35 @@ function titleScreen(){
   state='title';tier=0;setup();
   show(`<h2>GAZZOLEEN</h2>
   <p>The band is marching on the fair. Every 3 hits, a new row joins at the back, up to 5 extra rows. Then everything speeds up. Clear the whole band to start the next round. Keep them away from the midway!</p>
-  <div class="namebox"><label for="pname">Player name</label><input id="pname" maxlength="12" autocomplete="off" spellcheck="false" value="${esc(pname)}"></div>
+  <div class="namebox"><label for="pname">Player name</label><input id="pname" maxlength="8" autocomplete="off" spellcheck="false" value="${esc(pname)}"></div>
+  <div class="namebox"><label for="pcountry">Country</label><select id="pcountry">${countryOptions(pcountry)}</select></div>
   <div class="hint" id="hint"></div>
   <div class="btns"><button class="btn" id="go" type="button">Start game</button></div>
   <ul class="legend">${TYPES.map(t=>`<li><img src="${t.img}" alt=""><span>${t.name}</span><b>${t.pts}</b></li>`).join('')}
   <li><img src="${BEARS[0].toDataURL()}" alt=""><span>Bear</span><b>2&times;</b></li></ul>
   <div class="rides">${RIDE_IMGS.map(s=>`<img src="${s}" alt="">`).join('')}</div>
   <p class="small">Hide behind the rides. Tomatoes and pies chip them away. Hit the bear balloon for bonus points and double pies for 5 seconds.</p>
-  ${hiLine()}${playsHTML()}`,'full');
+  <div id="lb">${hiLine()}${playsHTML()}</div>`,'full');
+  lbGet().then(j=>{if(j&&state==='title')lbShow(lbHTML(pname,-1));});
   const inp=$('pname');inp.addEventListener('input',()=>{inp.value=inp.value.toUpperCase();inp.classList.remove('err');$('hint').textContent='';});
   $('go').onclick=tryStart;
   try{inp.focus({preventScroll:true});}catch(e){}
 }
-function tryStart(){const inp=$('pname');const v=(inp?inp.value:pname).trim().toUpperCase();
+function tryStart(){const inp=$('pname');const v=(inp?inp.value:pname).trim().toUpperCase().slice(0,8);
   if(!v){if(inp){inp.classList.remove('err');void inp.offsetWidth;inp.classList.add('err');$('hint').textContent='Type a name first';inp.focus();}return;}
-  pname=v;book.name=v;saveBook();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();begin();}
-function begin(){ac();startMusic();score=0;lives=3;tier=0;round=1;kills=0;extraRows=0;bannerT=0;dbl=0;showDbl();setup();parts=[];pops=[];state='play';hide();hud();}
+  pname=v;book.name=v;{const cs=$('pcountry');if(cs){pcountry=cs.value;book.country=pcountry;}}saveBook();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();begin();}
+function begin(){ac();startMusic();runStart=performance.now();score=0;lives=3;tier=0;round=1;kills=0;extraRows=0;bannerT=0;dbl=0;showDbl();setup();parts=[];pops=[];state='play';hide();hud();}
 function gameOver(reason){state='over';overReason=reason;
   const isHi=score>hi;if(isHi){hi=score;book.hiName=pname;try{localStorage.setItem('fairground-invaders-hi',hi)}catch(e){}}
-  lastPlay={name:pname,score,speed:tier+1};book.recent.push(lastPlay);if(book.recent.length>5)book.recent.shift();saveBook();
+  lastPlay={name:pname,country:pcountry,score,speed:tier+1};book.recent.push(lastPlay);if(book.recent.length>5)book.recent.shift();saveBook();
+  saving=score>0?lbSave({name:pname,country:pcountry,score,level:tier+1,duration:(performance.now()-runStart)/1000}):lbGet();
   hud();
-  setTimeout(()=>{if(state!=='over')return;show(`<h2>Game over</h2><p>${reason}</p><p>${esc(pname)} &middot; score <b class="num">${pad(score)}</b>${isHi&&score>0?' &middot; new hi-score!':''}</p>
-  ${playsHTML(lastPlay)}
-  <div class="btns"><button class="btn" id="go" type="button">Play again</button><button class="btn alt" id="rename" type="button">Change name</button></div><p class="small">or press Space</p>`,'full');$('go').onclick=begin;$('rename').onclick=titleScreen;},900);
+  setTimeout(()=>{if(state!=='over')return;show(`<h2>Game over</h2><p>${reason}</p><p>${esc(pname)} &middot; score <b class="num">${pad(score)}</b>${isHi&&score>0?' &middot; new personal best!':''}</p>
+  <div id="lb">${playsHTML(lastPlay)}</div>
+  <div class="btns"><button class="btn" id="go" type="button">Play again</button><button class="btn alt" id="rename" type="button">Change name</button></div><p class="small">or press Space</p>`,'full');$('go').onclick=begin;$('rename').onclick=titleScreen;
+  const sc=score,nm=pname;saving.then(res=>{if(state==='over')lbShow(lbHTML(nm,sc,res&&res.top?res:(res&&res.error?res:null)));});},900);
 }
-function togglePause(){if(state==='play'){prevState=state;state='paused';if(musicGain)musicGain.gain.value=0;show('<div class="tag">Paused &middot; P to resume</div>','banner');}
+function togglePause(){setTimeout(syncPause,0);if(state==='play'){prevState=state;state='paused';if(musicGain)musicGain.gain.value=0;show('<div class="tag">Paused &middot; P to resume</div>','banner');}
   else if(state==='paused'){state=prevState;hide();if(musicGain)musicGain.gain.value=musicOn?.21:0;}}
 
 /* ---------- effects ---------- */
@@ -494,7 +523,7 @@ function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;update(dt);render()
 /* ---------- input ---------- */
 const KEYMAP={ArrowLeft:'l',KeyA:'l',ArrowRight:'r',KeyD:'r',Space:'f',ArrowUp:'f',KeyW:'f'};
 addEventListener('keydown',e=>{
-  if(e.target.tagName==='INPUT'){if(e.key==='Enter'){e.preventDefault();tryStart();}return;}
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'){if(e.key==='Enter'){e.preventDefault();tryStart();}return;}
   if(e.target.tagName==='BUTTON'&&(e.code==='Space'||e.code==='Enter')&&state!=='play'){return;}
   if(KEYMAP[e.code]||e.code==='Enter'){e.preventDefault();}
   if((e.code==='Space'||e.code==='Enter')&&state==='title'){tryStart();return;}
@@ -509,9 +538,11 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='p
   b.addEventListener('pointerdown',on);['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,off));
   b.addEventListener('contextmenu',e=>e.preventDefault());});
 $('mute').onclick=e=>{muted=!muted;const b=e.currentTarget;b.textContent='Sound FX: '+(muted?'off':'on');b.setAttribute('aria-pressed',String(!muted));b.blur();};
+function syncPause(){const b=document.getElementById('pause');if(b)b.setAttribute('aria-pressed',String(state==='paused'));}
+$('pause').onclick=e=>{togglePause();e.currentTarget.blur();};
 $('music').onclick=e=>{musicOn=!musicOn;const b=e.currentTarget;b.textContent='Music: '+(musicOn?'on':'off');b.setAttribute('aria-pressed',String(musicOn));b.blur();
   if(musicOn)startMusic();if(musicGain&&state!=='paused')musicGain.gain.value=musicOn?.21:0;};
-addEventListener('keydown',e=>{if(e.target.tagName!=='INPUT'&&e.code==='KeyM'){$('music').click();}});
+addEventListener('keydown',e=>{if(!(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')&&e.code==='KeyM'){$('music').click();}});
 
 hud();titleScreen();requestAnimationFrame(loop);
 
@@ -524,6 +555,6 @@ hud();titleScreen();requestAnimationFrame(loop);
   if(window.ResizeObserver)new ResizeObserver(fit).observe(st);})();
 })();
 </script>
-
+<script src="/files/tracker/site.js" defer></script>
 </body>
 </html>
